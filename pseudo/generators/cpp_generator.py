@@ -4,7 +4,7 @@ from pseudo.pseudo_tree import Node, local
 from pseudo.code_generator_dsl import PseudoType
 
 class CppGenerator(CodeGenerator):
-    '''Cpp code generator'''
+    '''C++ code generator'''
 
     indent = 4
     use_spaces = True
@@ -13,16 +13,16 @@ class CppGenerator(CodeGenerator):
 
     types = {
       'Int': 'int',
-      'Float': 'float',
+      'Float': 'double',
       'Boolean': 'bool',
-      'String': 'string',
-      'List': 'vector<{0}>',
-      'Dictionary': 'unordered_map<{0}, {1}>',
-      'Tuple': lambda t: 'pair<{0}{1}>'.format(*t) if len(t) == 2 else 'tuple<{0}>'.format(', '.join(t)),
+      'String': 'std::string',
+      'List': 'std::vector<{0}>',
+      'Dictionary': 'std::unordered_map<{0}, {1}>',
+      'Tuple': lambda t: 'std::pair<{0}{1}>'.format(*t) if len(t) == 2 else 'std::tuple<{0}>'.format(', '.join(t)),
       'Array': '{0}*',
-      'Set': 'set<{0}>',
+      'Set': 'std::set<{0}>',
       'Void': 'void',
-      'Pointer': 'smart_ptr<{0}>'
+      'Pointer': 'std::shared_ptr<{0}>'
     }
 
     templates = dict(
@@ -69,7 +69,7 @@ class CppGenerator(CodeGenerator):
                 %<block:semi>
             }''',
 
-        dependency  = '#include<%<name>>',
+        dependency  = '#include <%<name>>',
 
 
         local       = '%<name>',
@@ -78,12 +78,12 @@ class CppGenerator(CodeGenerator):
         float       = '%<value>',
         string      = '%<#safe_double>',
         boolean     = '%<value>',
-        null        = 'NULL',
+        null        = 'nullptr',
 
         list        = "{%<elements:join ', '>}",
         dictionary  = "%<@pseudo_type>{{%<pairs:join ', '>}}",
         set         = "%<@pseudo_type>({%<elements:join ', '>})",
-        regex       = 'regex("%<value>")',
+        regex       = 'std::regex("%<value>")',
         pair        = "%<key>: %<value>",
         attr        = "%<object>.%<attr>",
 
@@ -148,25 +148,25 @@ class CppGenerator(CodeGenerator):
 
         for_statement = switch(lambda f: f.iterators.type,
             for_iterator_with_index = '''
-                for(int %<iterators.index> = 0; %<iterators.index> < %<sequences.sequence>.size(); %<iterators.index> ++) {
-                    auto %<iterators.iterator> = %<sequences.sequence>[%<iterators.index>];
+                for(size_t %<iterators.index> = 0, _n = %<sequences.sequence>.size(); %<iterators.index> != _n; ++%<iterators.index>) {
+                    auto& %<iterators.iterator> = %<sequences.sequence>[%<iterators.index>];
                     %<block:semi>
                 }''',
 
             for_iterator_zip = '''
-                for(int _index = 0; _index < %<#first_sequence>.size(); _index ++) {
+                for(size_t _index = 0, _n = %<#first_sequence>.size(); _index != n; ++_index) {
                     %<#zip_iterators>
                     %<block:semi>
                 }''',
 
             for_iterator_with_items = '''
                 for(auto& _item : %<sequences.sequence>) {
-                    auto %<iterators.key> = _item.first;
-                    auto %<iterators.value> = _item.second;
+                    auto& %<iterators.key> = _item.first;
+                    auto& %<iterators.value> = _item.second;
                     %<block:semi>
                 }''',
             _otherwise = '''
-                for(%<iterators>: %<sequences>) {
+                for(%<iterators> : %<sequences>) {
                     %<block:semi>
                 }'''
         
@@ -214,9 +214,9 @@ class CppGenerator(CodeGenerator):
 
         _cpp_group = '(%<value>)',
 
-        _cpp_cin = 'cin >> %<args:first>', # support only one for now
+        _cpp_cin = 'std::cin >> %<args:first>', # support only one for now
 
-        _cpp_cout = "cout << %<args:join ' << '> << endl"
+        _cpp_cout = "std::cout << %<args:join ' << '> << std::endl"
     )
   
     def namespace(self, node, indent):
@@ -247,8 +247,8 @@ class CppGenerator(CodeGenerator):
                 if d.name == 'iostream':
                     break
             else:
-                iostream = '#include<iostream>\n'
-            return '%s#include<stdexcept>\n#include<exception>\n' % iostream
+                iostream = '#include <iostream>\n'
+            return '%s#include <stdexcept>\n#include <exception>\n' % iostream
         else:
           return ''
 
